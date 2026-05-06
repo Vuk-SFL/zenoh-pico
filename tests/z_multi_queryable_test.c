@@ -74,12 +74,29 @@ static bool try_recv_qid(const z_loaned_fifo_handler_reply_t *handler, int *out_
     ASSERT_OK(z_bytes_to_string(z_sample_payload(sample), &s));
 
     const char *ptr = z_string_data(z_loan(s));
+    size_t len = z_string_len(z_loan(s));
     int qid = -1;
-    if (ptr != NULL && sscanf(ptr, "q=%d", &qid) == 1) {
-        *out_qid = qid;
-    } else {
-        *out_qid = -1;
+    if (ptr != NULL && len >= 3 && ptr[0] == 'q' && ptr[1] == '=') {
+        int acc = 0;
+        bool ok = true;
+        for (size_t i = 2; i < len; i++) {
+            char c = ptr[i];
+            if (c < '0' || c > '9') {
+                ok = false;
+                break;
+            }
+            acc = (acc * 10) + (c - '0');
+        }
+        if (ok) {
+            qid = acc;
+        }
     }
+    if (qid < 0) {
+        fprintf(stderr, "Failed to parse queryable id from reply payload (len=%zu, payload='%.*s')\n", len, (int)len,
+                (ptr != NULL) ? ptr : "");
+        fflush(stderr);
+    }
+    *out_qid = qid;
 
     z_drop(z_move(s));
     z_drop(z_move(r));
