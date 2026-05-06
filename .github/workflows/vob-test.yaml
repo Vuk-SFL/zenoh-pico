@@ -1,0 +1,9 @@
+name: Run Integration Manually
+
+on:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    name: Integration
+    uses: ./.github/workflows/integration.yaml
